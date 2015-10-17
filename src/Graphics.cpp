@@ -46,6 +46,8 @@ const PROGMEM char ORIENTATION[] = "ORIENTATION";
 const PROGMEM char VALUE[] = "VALUE";
 const PROGMEM char INPUTTXT[] = "INPUT";
 const PROGMEM char MULTI[] = "MULTI";
+const PROGMEM char EVENTS[] = "EVENTS";
+const PROGMEM char CHANGEACTION[] = "CHANGE";
 
 /// <summary>
 /// Initializes a new instance of the <see cref="Screen"/> class.
@@ -71,10 +73,13 @@ int Graphics::line(UINT x1, UINT y1, UINT x2, UINT y2, ARGB argb, UINT weight)
 /// <param name="y">The y.</param>
 /// <param name="text">The text.</param>
 /// <returns>The id of the message. Negative if an error.</returns>
-int Graphics::drawAt(UINT x, UINT y, String text, ARGB argb)
+int Graphics::drawAt(UINT x, UINT y, String text, String tag, ARGB argb)
 {
-	EPtr eptrs[] = { EPtr(ACTION, TEXT), EPtr(Y, (uint32_t)y), EPtr(X, (uint32_t)x), EPtr(MemPtr, MESSAGE, text.c_str()), EPtr(RGBAKEY, (uint32_t)argb.color, (uint32_t)argb.color ? Uint : None) };
-	return writeAll(SERVICE_NAME_GRAPHICS, eptrs, 5);
+	EPtr eptrs[] = { EPtr(ACTION, TEXT), EPtr(Y, (uint32_t)y), 
+		EPtr(X, (uint32_t)x), EPtr(MemPtr, MESSAGE, text.c_str()), 
+		EPtr(RGBAKEY, (uint32_t)argb.color, (uint32_t)argb.color ? Uint : None),
+		EPtr(tag ? MemPtr : None, TAG, tag.c_str()) };
+	return writeAll(SERVICE_NAME_GRAPHICS, eptrs, 6);
 }
 
 /// <summary>
@@ -116,6 +121,12 @@ int Graphics::input(UINT x, UINT y, bool multiline, String text, UINT width, UIN
 	return writeAll(SERVICE_NAME_GRAPHICS, eptrs, 7);
 }
 
+int Graphics::change(UINT id, ARGB argb)
+{
+    EPtr eptrs[] = { EPtr(ACTION, CHANGEACTION), EPtr(PID, (uint32_t)id), EPtr(RGBAKEY, (uint32_t)argb.color, (uint32_t)argb.color ? Uint : None) };
+    return writeAll(SERVICE_NAME_GRAPHICS, eptrs, 3);
+}
+
 /// <summary>
 /// Fills a rectangle.
 /// </summary>
@@ -126,14 +137,16 @@ int Graphics::input(UINT x, UINT y, bool multiline, String text, UINT width, UIN
 /// <param name="rgba">The rgba.</param>
 /// <param name="tag">The tag. Returned back for event recognition.</param>
 /// <returns>The id of the message. Negative if an error.</returns>
-int Graphics::fillRectangle(UINT x, UINT y, UINT width, UINT height, ARGB argb, String tag)
+int Graphics::fillRectangle(UINT x, UINT y, UINT width, UINT height, ARGB argb, String tag, bool enableExtendedEvents)
 {
 	EPtr eptrs[] = { EPtr(ACTION, RECTANGLE), EPtr(Y, (uint32_t)y), EPtr(X, (uint32_t)x),
 		EPtr(WIDTH, (uint32_t)width), EPtr(HEIGHT, (uint32_t)height),
 		EPtr(RGBAKEY, (uint32_t)argb.color, argb.color ? Uint : None),
-		EPtr(tag ? MemPtr : None, TAG, tag.c_str()) };
+		EPtr(tag ? MemPtr : None, TAG, tag.c_str()),
+        EPtr(EVENTS, enableExtendedEvents, enableExtendedEvents ? Bool : None)
+    };
 
-	return shield.block(writeAll(SERVICE_NAME_GRAPHICS, eptrs, 7), onEvent == 0);
+	return shield.block(writeAll(SERVICE_NAME_GRAPHICS, eptrs, 8), onEvent == 0);
 }
 
 int Graphics::orientation(int autoRotationPreferences)
@@ -177,7 +190,7 @@ bool Graphics::isPressed(int id, ShieldEvent* shieldEvent)
 {
 	if (shieldEvent == 0)
 	{
-		shieldEvent = &recentEvent;
+		shieldEvent = recentEvent;
 	}
 
 	return Sensor::isEvent(id, "pressed", shieldEvent) || Sensor::isEvent(id, "click", shieldEvent);
@@ -193,7 +206,7 @@ bool Graphics::isPressed(String tag, ShieldEvent* shieldEvent)
 {
 	if (shieldEvent == 0)
 	{
-		shieldEvent = &recentEvent;
+		shieldEvent = recentEvent;
 	}
 
 	return Sensor::isEvent(tag.c_str(), "pressed", shieldEvent) || Sensor::isEvent(tag.c_str(), "click", shieldEvent);
@@ -209,7 +222,7 @@ bool Graphics::isReleased(int id, ShieldEvent* shieldEvent)
 {
 	if (shieldEvent == 0)
 	{
-		shieldEvent = &recentEvent;
+		shieldEvent = recentEvent;
 	}
 
 	return Sensor::isEvent(id, "released", shieldEvent) || Sensor::isEvent(id, "click", shieldEvent);
@@ -225,7 +238,7 @@ bool Graphics::isReleased(String tag, ShieldEvent* shieldEvent)
 {
 	if (shieldEvent == 0)
 	{
-		shieldEvent = &recentEvent;
+		shieldEvent = recentEvent;
 	}
 
 	return Sensor::isEvent(tag.c_str(), "released", shieldEvent) || Sensor::isEvent(tag.c_str(), "click", shieldEvent);
@@ -241,7 +254,7 @@ bool Graphics::isButtonClicked(String tag, ShieldEvent* shieldEvent)
 {
 	if (shieldEvent == 0)
 	{
-		shieldEvent = &recentEvent;
+		shieldEvent = recentEvent;
 	}
 
 	return Sensor::isEvent(tag.c_str(), "click", shieldEvent) || Sensor::isEvent(tag.c_str(), "tapped", shieldEvent);
@@ -257,7 +270,7 @@ bool Graphics::isButtonClicked(int id, ShieldEvent* shieldEvent)
 {
     if (shieldEvent == 0)
     {
-        shieldEvent = &recentEvent;
+        shieldEvent = recentEvent;
     }
 
     return Sensor::isEvent(id, "click", shieldEvent) || Sensor::isEvent(id, "tapped", shieldEvent);
@@ -272,7 +285,7 @@ bool Graphics::isTouchEvent(ShieldEvent* shieldEvent)
 {
 	if (shieldEvent == 0)
 	{
-		shieldEvent = &recentEvent;
+		shieldEvent = recentEvent;
 	}
 
 	return strcmp(area, "TOUCH") == 0;

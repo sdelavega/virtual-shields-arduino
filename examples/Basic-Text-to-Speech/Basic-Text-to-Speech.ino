@@ -22,11 +22,49 @@
     THE SOFTWARE.
 */
 
-const long RED = 0xFF0000;
-const long GREEN = 0xFF00;
-const long BLUE = 0xFF;
-const long BLACK = 0;
-const long WHITE = 0xFFFFFF;
-const long YELLOW = 0xFFFF00;
-const long ORANGE = 0xFF8000;
-const long PURPLE = 0xFF00FF;
+/*
+    The Speech shield speaks text.
+	
+*/
+
+// Include the ArduinoJson library, a dependency.
+#include <ArduinoJson.h>
+
+// VirtualShield is the core of all shields.
+#include <VirtualShield.h>
+
+// Text is to display text onscreen.
+#include <Text.h>
+
+#include <Speech.h>
+
+// Instantiate the shields.
+VirtualShield shield;
+Text screen = Text(shield);
+Speech speech = Speech(shield);
+
+// Callback for startup, reconnection, and when the pushing 'Refresh' button
+void refresh(ShieldEvent* shieldEvent)
+{
+  // clear the screen
+  screen.clear();
+  
+  screen.printAt(1, "Basic Text to Speech");
+  
+  speech.speak("Hello World from Windows Virtual Shields for Arduino");
+}
+
+void setup()
+{
+  // Call 'refresh' on startup, on reconnection, and when the pushing 'Refresh' button
+  shield.setOnRefresh(refresh);
+
+  // Begin the shield communication
+  shield.begin();
+}
+
+void loop()
+{
+  // checkSensors() checks for return events and handles them (calling callbacks). This is VirtualShield's single loop() method.
+  shield.checkSensors();
+}		 
